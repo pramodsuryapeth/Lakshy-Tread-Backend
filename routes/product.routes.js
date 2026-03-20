@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const { verifyAdmin } = require("../middleware/admin.middleware");
+const { verifyAdmin } = require("../middleware/auth.middleware");
 const upload = require("../middleware/upload.middleware");
 const { uploadToCloudinary } = require("../middleware/cloudinary.middleware");
 

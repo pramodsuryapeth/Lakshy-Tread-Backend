@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const upload = require('../middleware/upload.middleware')
 
 const { verifyUser } = require("../middleware/auth.middleware");
 
@@ -8,9 +9,9 @@ const {
   getCart,
   removeFromCart,
   updateCart
-} = require("../controllers/cart.controller");
+} = require("../controllers/cartcontroller");
 
-router.post("/add", verifyUser, addToCart);
+router.post("/add", verifyUser, upload.single("image"), addToCart);
 router.get("/", verifyUser, getCart);
 router.delete("/remove", verifyUser, removeFromCart);
 router.put("/update", verifyUser, updateCart);

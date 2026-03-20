@@ -2,8 +2,10 @@ const Cart = require("../models/Cart");
 
 exports.addToCart = async (req, res) => {
   try {
-    const { productId, name, size, color, price, quantity, image } = req.body;
+    const { productId, name, size, color, price, quantity } = req.body;
     const userId = req.user.userId;
+
+    const customImage = req.file ? req.file.filename : null; // 🔥 ADD THIS
 
     let cart = await Cart.findOne({ userId });
 
@@ -11,7 +13,6 @@ exports.addToCart = async (req, res) => {
       cart = new Cart({ userId, items: [] });
     }
 
-    // 🔍 check if already exists
     const existingItem = cart.items.find(
       item =>
         item.productId.toString() === productId &&
@@ -21,6 +22,12 @@ exports.addToCart = async (req, res) => {
 
     if (existingItem) {
       existingItem.quantity += quantity;
+
+      // 🔥 OPTIONAL: update image if new upload
+      if (customImage) {
+        existingItem.customImage = customImage;
+      }
+
     } else {
       cart.items.push({
         productId,
@@ -29,7 +36,8 @@ exports.addToCart = async (req, res) => {
         color,
         price,
         quantity,
-        image
+        image: req.body.image, // product image
+        customImage // 🔥 ADD THIS
       });
     }
 
@@ -63,13 +71,17 @@ exports.removeFromCart = async (req, res) => {
 };
 
 exports.updateCart = async (req, res) => {
-  const { productId, quantity } = req.body;
+  const { productId, size, color, quantity, customImage } = req.body;
   const userId = req.user.userId;
 
   const cart = await Cart.findOne({ userId });
 
   const item = cart.items.find(
-    i => i.productId.toString() === productId
+    i =>
+      i.productId.toString() === productId &&
+      i.size === size &&
+      i.color === color &&
+      i.customImage === customImage // 🔥 IMPORTANT
   );
 
   if (item) {
