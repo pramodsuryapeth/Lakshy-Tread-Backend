@@ -1,0 +1,23 @@
+const express = require("express");
+const router = express.Router();
+
+const { verifyUser, verifyAdmin } = require("../middleware/auth.middleware");
+
+const {
+  checkout,
+  getUserOrders,
+  getAllOrders,
+  updateOrderStatus,
+  getRevenue
+} = require("../controllers/order.controller");
+
+// 👤 USER
+router.post("/checkout", verifyUser, checkout);
+router.get("/my", verifyUser, getUserOrders);
+
+// 🧑‍💼 ADMIN
+router.get("/all", verifyAdmin, getAllOrders);
+router.put("/status", verifyAdmin, updateOrderStatus);
+router.get("/revenue", verifyAdmin, getRevenue);
+
+module.exports = router;
