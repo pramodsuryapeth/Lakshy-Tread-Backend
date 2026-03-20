@@ -27,6 +27,7 @@ app.use("/api/cart", require("./routes/cart.routes"));
 app.use("/api/order", require("./routes/order.routes"));
 app.use("/api/payment", require("./routes/payment"));
 app.use("/api/product", require("./routes/product.routes"));
+app.use("/api/review", require("./routes/review.routes"));
 // app.use("/api/user", require("./routes/user.routes"));
 
 // 🧪 TEST ROUTE
