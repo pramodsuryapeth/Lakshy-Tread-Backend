@@ -1,4 +1,5 @@
 const Product = require("../models/Product");
+const redisClient = require("../config/redis");
 
 // =====================
 // ➕ ADD PRODUCT
@@ -14,6 +15,9 @@ exports.addProduct = async (req, res) => {
     });
 
     await product.save();
+
+    // 🧠 clear cache
+    await redisClient.del("products:all");
 
     res.json(product);
 
@@ -35,16 +39,17 @@ exports.updateProduct = async (req, res) => {
       return res.status(404).json({ message: "Product not found ❌" });
     }
 
-    // update fields
     product.name = name || product.name;
     product.description = description || product.description;
 
-    // only update image if new uploaded
     if (req.imageUrl) {
       product.image = req.imageUrl;
     }
 
     await product.save();
+
+    // 🧠 clear cache
+    await redisClient.del("products:all");
 
     res.json(product);
 
@@ -68,6 +73,9 @@ exports.deleteProduct = async (req, res) => {
 
     await Product.findByIdAndDelete(productId);
 
+    // 🧠 clear cache
+    await redisClient.del("products:all");
+
     res.json({ message: "Product deleted ✅" });
 
   } catch (err) {
@@ -88,7 +96,6 @@ exports.addVariant = async (req, res) => {
       return res.status(404).json({ message: "Product not found ❌" });
     }
 
-    // ❗ duplicate check (size + color)
     const exists = product.variants.find(
       v => v.size === size && v.color === color
     );
@@ -106,6 +113,9 @@ exports.addVariant = async (req, res) => {
     });
 
     await product.save();
+
+    // 🧠 clear cache
+    await redisClient.del("products:all");
 
     res.json(product);
 
@@ -133,7 +143,6 @@ exports.updateVariant = async (req, res) => {
       return res.status(404).json({ message: "Variant not found ❌" });
     }
 
-    // ❗ duplicate check (exclude current)
     const exists = product.variants.find(
       v =>
         v.size === size &&
@@ -145,18 +154,19 @@ exports.updateVariant = async (req, res) => {
       return res.status(400).json({ message: "Variant already exists ❌" });
     }
 
-    // update fields
     variant.size = size || variant.size;
     variant.color = color || variant.color;
     variant.price = price || variant.price;
     variant.stock = stock || variant.stock;
 
-    // only update image if new uploaded
     if (req.imageUrl) {
       variant.image = req.imageUrl;
     }
 
     await product.save();
+
+    // 🧠 clear cache
+    await redisClient.del("products:all");
 
     res.json(product);
 
@@ -184,6 +194,9 @@ exports.deleteVariant = async (req, res) => {
 
     await product.save();
 
+    // 🧠 clear cache
+    await redisClient.del("products:all");
+
     res.json(product);
 
   } catch (err) {
@@ -196,8 +209,22 @@ exports.deleteVariant = async (req, res) => {
 // =====================
 exports.getProducts = async (req, res) => {
   try {
+    // 🔥 Redis first
+    const cached = await redisClient.get("products:all");
+
+    if (cached) {
+      return res.json(JSON.parse(cached));
+    }
+
     const products = await Product.find();
+
+    // 🧠 cache (10 min)
+    await redisClient.set("products:all", JSON.stringify(products), {
+      EX: 60 * 10
+    });
+
     res.json(products);
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

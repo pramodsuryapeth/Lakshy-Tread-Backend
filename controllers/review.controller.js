@@ -1,11 +1,12 @@
 const Review = require("../models/Review");
+const redisClient = require("../config/redis");
 
 // ➕ Add Review
 exports.addReview = async (req, res) => {
   try {
     const { productId, rating, comment } = req.body;
 
-    const imageUrls = req.files.map(file => file.path); // cloudinary
+    const imageUrls = req.files.map(file => file.path);
 
     const review = new Review({
       userId: req.user.userId,
@@ -16,6 +17,9 @@ exports.addReview = async (req, res) => {
     });
 
     await review.save();
+
+    // 🧠 clear cache (specific product reviews)
+    await redisClient.del(`reviews:${productId}`);
 
     res.json({ message: "Review added ✅", review });
 
@@ -28,9 +32,25 @@ exports.addReview = async (req, res) => {
 // 📦 Get Product Reviews
 exports.getReviews = async (req, res) => {
   try {
+    const productId = req.params.productId;
+
+    // 🔥 Redis first
+    const cached = await redisClient.get(`reviews:${productId}`);
+
+    if (cached) {
+      return res.json(JSON.parse(cached));
+    }
+
     const reviews = await Review.find({
-      productId: req.params.productId
+      productId
     }).populate("userId");
+
+    // 🧠 cache (10 min)
+    await redisClient.set(
+      `reviews:${productId}`,
+      JSON.stringify(reviews),
+      { EX: 60 * 10 }
+    );
 
     res.json(reviews);
 

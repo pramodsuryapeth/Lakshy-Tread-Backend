@@ -1,20 +1,33 @@
 const User = require("../models/Users");
 const jwt = require("jsonwebtoken");
+const redisClient = require("../config/redis");
 
 exports.loginOrRegister = async (req, res) => {
   try {
     const { email } = req.body;
 
-    // 🔍 check user
-    let user = await User.findOne({ email });
+    // 🔍 Redis check (cache)
+    let user = await redisClient.get(`user:${email}`);
 
-    // 🆕 create if not exists
-    if (!user) {
-      user = new User({ email });
-      await user.save();
+    if (user) {
+      user = JSON.parse(user);
+    } else {
+      // 🔍 DB check
+      user = await User.findOne({ email });
+
+      // 🆕 create user
+      if (!user) {
+        user = new User({ email });
+        await user.save();
+      }
+
+      // 🧠 cache in Redis (1 hour)
+      await redisClient.set(`user:${email}`, JSON.stringify(user), {
+        EX: 60 * 60
+      });
     }
 
-    // 🔐 JWT Token
+    // 🔐 JWT token
     const token = jwt.sign(
       {
         userId: user._id,
@@ -24,6 +37,11 @@ exports.loginOrRegister = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
+
+    // 🧠 store token in Redis
+    await redisClient.set(`userToken:${token}`, "valid", {
+      EX: 60 * 60 * 24 * 7
+    });
 
     res.json({
       message: "Login/Register successful 🔥",

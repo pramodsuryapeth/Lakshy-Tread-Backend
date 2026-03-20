@@ -1,7 +1,7 @@
-// controllers/admin.controller.js
 const jwt = require("jsonwebtoken");
+const redisClient = require("../config/redis");
 
-exports.loginAdmin = (req, res) => {
+exports.loginAdmin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -20,6 +20,11 @@ exports.loginAdmin = (req, res) => {
       { expiresIn: "7d" }
     );
 
+    // 🧠 Store token in Redis (optional but useful)
+    await redisClient.set(`admin:${token}`, "valid", {
+      EX: 60 * 60 * 24 * 7 // 7 days
+    });
+
     res.json({
       message: "Admin login successful 🔥",
       token
@@ -29,4 +34,3 @@ exports.loginAdmin = (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
