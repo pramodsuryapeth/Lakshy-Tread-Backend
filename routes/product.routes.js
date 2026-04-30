@@ -12,11 +12,12 @@ const {
   deleteProduct,
   addVariant,
   updateVariant,
-  deleteVariant
+  deleteVariant,
+   getVariants
 } = require("../controllers/product.controller");
 
 // 🔐 Protect all routes
-router.use(verifyAdmin);
+
 
 // =====================
 // 📦 PRODUCT ROUTES
@@ -25,8 +26,9 @@ router.use(verifyAdmin);
 // ➕ Add product (with image)
 router.post(
   "/add",
-  upload.single("image"),   // 🔥 FIX
-  uploadToCloudinary,
+  verifyAdmin,
+  upload.array("images", 5),
+  uploadToCloudinary("products"), // ✅ MUST CALL FUNCTION
   addProduct
 );
 
@@ -36,13 +38,14 @@ router.get("/", getProducts);
 // ✏ Update product (with optional image)
 router.put(
   "/update",
-  upload.single("image"),   // 🔥 recommended
-  uploadToCloudinary,
+  verifyAdmin,
+  upload.array("images", 5),  // 🔥 recommended
+  uploadToCloudinary("products"),
   updateProduct
 );
 
 // ❌ Delete product
-router.delete("/:productId", deleteProduct);
+router.delete("/:productId", verifyAdmin, deleteProduct);
 
 // =====================
 // 🔁 VARIANT ROUTES
@@ -51,20 +54,23 @@ router.delete("/:productId", deleteProduct);
 // ➕ Add variant (with image)
 router.post(
   "/variant",
-  upload.single("image"),
-  uploadToCloudinary,
+  verifyAdmin,
+  upload.array("images", 5),
+  uploadToCloudinary("variants"),
   addVariant
 );
+router.get("/variant/:productId", getVariants);
 
 // ✏ Update variant (with optional image)
 router.put(
   "/variant",
-  upload.single("image"),
-  uploadToCloudinary,
+  verifyAdmin,
+  upload.array("images", 5),
+  uploadToCloudinary("variants"),
   updateVariant
 );
 
 // ❌ Delete variant
-router.delete("/variant", deleteVariant);
+router.delete("/variant/:variantId", verifyAdmin, deleteVariant);
 
 module.exports = router;

@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const { verifyUser } = require("../middleware/auth.middleware");
-const upload = require("../middleware/upload"); // cloudinary
+const upload = require("../middleware/upload.middleware"); // cloudinary
 
 const {
   addReview,

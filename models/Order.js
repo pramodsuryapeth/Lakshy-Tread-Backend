@@ -15,19 +15,30 @@ const orderSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Product"
       },
+
       name: String,
       size: String,
       color: String,
       price: Number,
       quantity: Number,
-      image: String,
-      customImage: String 
+
+      image: String, // product image
+
+      // 🔥 customize design (optional)
+      designImage: String,
+
+      // 🔥 buy-time uploaded images (optional multiple)
+      uploadedImages: [String],
+
+      // 🔥 user note (optional)
+      note: String
     }
   ],
 
   deliveryType: {
     type: String,
-    enum: ["delivery", "pickup"]
+    enum: ["delivery", "pickup"],
+    required: true
   },
 
   charges: {
@@ -48,10 +59,22 @@ const orderSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ["pending", "confirmed", "dispatched", "completed"],
-    default: "pending"
+    enum: ["received", "confirmed", "ready", "dispatched", "delivered"],
+    default: "received"
+  },
+
+  // 🔥 extra timestamps (readable)
+  createdDate: {
+    type: String
+  },
+  createdTime: {
+    type: String
   }
 
 }, { timestamps: true });
+
+// indexes
+orderSchema.index({ status: 1 });
+orderSchema.index({ deliveryType: 1 });
 
 module.exports = mongoose.model("Order", orderSchema);

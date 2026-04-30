@@ -4,9 +4,12 @@ const redisClient = require("../config/redis");
 
 exports.loginOrRegister = async (req, res) => {
   try {
-    const { email } = req.body;
+    let { email } = req.body;
 
-    // 🔍 Redis check (cache)
+    // ✅ normalize email (MOST IMPORTANT FIX)
+    email = email.trim().toLowerCase();
+
+    // 🔍 Redis check
     let user = await redisClient.get(`user:${email}`);
 
     if (user) {
@@ -15,37 +18,23 @@ exports.loginOrRegister = async (req, res) => {
       // 🔍 DB check
       user = await User.findOne({ email });
 
-      // 🆕 create user
       if (!user) {
+        // 🆕 create user only if NOT exists
         user = new User({ email });
         await user.save();
       }
 
-      // 🧠 cache in Redis (1 hour)
+      // 🧠 cache user (1 hour)
       await redisClient.set(`user:${email}`, JSON.stringify(user), {
         EX: 60 * 60
       });
     }
 
-    // 🔐 JWT token
-    const token = jwt.sign(
-      {
-        userId: user._id,
-        email: user.email,
-        role: "user"
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    // 🧠 store token in Redis
-    await redisClient.set(`userToken:${token}`, "valid", {
-      EX: 60 * 60 * 24 * 7
-    });
+    // ❗ IMPORTANT: Don't generate JWT here if OTP flow is used
+    // 👉 Instead just confirm user exists
 
     res.json({
-      message: "Login/Register successful 🔥",
-      token,
+      message: "User found / created successfully 👍",
       user
     });
 
