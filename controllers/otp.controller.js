@@ -38,13 +38,29 @@ exports.sendEmailOTP = async (req, res) => {
     console.log("OTP:", user.otp);
 
     // 📧 send email (optional)
-    /*
     await transporter.sendMail({
-      to: email,
-      subject: "OTP",
-      text: `Your OTP is ${otp}`
-    });
-    */
+  from: process.env.EMAIL_USER,
+  to: email,
+  subject: "Lakshy Trendzz | Your OTP Code 🔐",
+  text: `
+Hello 👋,
+
+Welcome to Lakshy Trendzz!
+
+Your One-Time Password (OTP) for login is:
+
+🔐 OTP: ${otp}
+
+This OTP is valid for 5 minutes.
+
+Please do not share this code with anyone for security reasons.
+
+If you did not request this, please ignore this email.
+
+Thanks & Regards,  
+Lakshy Trendzz Team 🛍️
+`
+});
 
     res.json({ message: "OTP sent to email 📩" });
 
