@@ -4,66 +4,66 @@ const redisClient = require("../config/redis");
 // ➕ Add to Cart
 exports.addToCart = async (req, res) => {
   try {
-    const { productId, name, size, color, price, quantity } = req.body;
-    const userId = req.user.userId;
+    const {
+      productId,
+      variantId,   
+      name,
+      size,
+      color,
+      price,
+      quantity,
+      image
+    } = req.body;
 
-    const customImage = req.file ? req.file.filename : null;
+    const userId = req.user.userId;
 
     let cart;
 
-    // 🔥 1. Try Redis first
+    // 🔥 Redis check
     const cachedCart = await redisClient.get(`cart:${userId}`);
 
     if (cachedCart) {
       cart = JSON.parse(cachedCart);
     } else {
-      cart = await Cart.findOne({ userId });
-
-      if (!cart) {
-        cart = new Cart({ userId, items: [] });
-      }
+      const dbCart = await Cart.findOne({ userId });
+      cart = dbCart ? dbCart.toObject() : { userId, items: [] };
     }
 
-    // 🔍 Find item
+    
     const existingItem = cart.items.find(
-      item =>
-        item.productId.toString() === productId &&
-        item.size === size &&
-        item.color === color
+      item => item.variantId === variantId
     );
 
     if (existingItem) {
-      existingItem.quantity += quantity;
-
-      if (customImage) {
-        existingItem.customImage = customImage;
-      }
+      existingItem.quantity += Number(quantity);
     } else {
       cart.items.push({
         productId,
+        variantId,
         name,
         size,
         color,
         price,
         quantity,
-        image: req.body.image,
-        customImage
+        image
       });
     }
 
-    // 💾 Save in DB
-    await Cart.findOneAndUpdate(
+  
+    const updatedCart = await Cart.findOneAndUpdate(
       { userId },
-      cart,
+      { $set: { items: cart.items } },
       { upsert: true, new: true }
     );
 
-    // 🧠 Update Redis
-    await redisClient.set(`cart:${userId}`, JSON.stringify(cart), {
-      EX: 60 * 60 // 1 hour
-    });
+  
+    await redisClient.set(
+      `cart:${userId}`,
+      JSON.stringify(updatedCart),
+      { EX: 60 * 60 }
+    );
 
-    res.json(cart);
+    res.json(updatedCart);
 
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -107,18 +107,32 @@ exports.getCart = async (req, res) => {
 // ❌ Remove from Cart
 exports.removeFromCart = async (req, res) => {
   try {
-    const { productId } = req.body;
+    const { variantId } = req.body;
     const userId = req.user.userId;
 
     let cart = await Cart.findOne({ userId });
 
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    // 🔥 remove item
     cart.items = cart.items.filter(
-      item => item.productId.toString() !== productId
+      item => item.variantId.toString() !== variantId.toString()
     );
 
+    // 🔥 अगर cart empty झाला → delete document
+    if (cart.items.length === 0) {
+      await Cart.findOneAndDelete({ userId });
+
+      await redisClient.del(`cart:${userId}`);
+
+      return res.json({ items: [] }); // frontend ला empty cart
+    }
+
+    // 🔥 else save normally
     await cart.save();
 
-    // 🧠 Update Redis
     await redisClient.set(`cart:${userId}`, JSON.stringify(cart), {
       EX: 60 * 60
     });
@@ -131,21 +145,16 @@ exports.removeFromCart = async (req, res) => {
 };
 
 
-
 // 🔄 Update Cart
 exports.updateCart = async (req, res) => {
   try {
-    const { productId, size, color, quantity, customImage } = req.body;
+    const { variantId, quantity } = req.body; // 🔥 FIX
     const userId = req.user.userId;
 
     let cart = await Cart.findOne({ userId });
 
     const item = cart.items.find(
-      i =>
-        i.productId.toString() === productId &&
-        i.size === size &&
-        i.color === color &&
-        i.customImage === customImage
+      i => i.variantId === variantId   // 🔥 FIX
     );
 
     if (item) {
@@ -154,7 +163,6 @@ exports.updateCart = async (req, res) => {
 
     await cart.save();
 
-    // 🧠 Update Redis
     await redisClient.set(`cart:${userId}`, JSON.stringify(cart), {
       EX: 60 * 60
     });

@@ -6,7 +6,9 @@ const orderSchema = new mongoose.Schema({
     email: String,
     phone: String,
     address: String,
-    pincode: String
+    pincode: String,
+   city: String,
+    state: String,
   },
 
   items: [
@@ -25,7 +27,7 @@ const orderSchema = new mongoose.Schema({
       image: String, // product image
 
       // 🔥 customize design (optional)
-      designImage: String,
+      designImage: [String],
 
       // 🔥 buy-time uploaded images (optional multiple)
       uploadedImages: [String],

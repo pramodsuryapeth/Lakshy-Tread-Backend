@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 
 const { verifyUser, verifyAdmin } = require("../middleware/auth.middleware");
+const upload = require("../middleware/upload.middleware");
+const { uploadToCloudinary } = require("../middleware/cloudinary.middleware");
 
 const {
   checkout,
@@ -15,7 +17,8 @@ const {
 } = require("../controllers/order.controller");
 
 // 👤 USER
-router.post("/checkout", verifyUser, checkout);
+router.post("/checkout", verifyUser, upload.array("images", 5),
+  uploadToCloudinary("checkout"), checkout);
 router.get("/my", verifyUser, getUserOrders);
 
 // 🧑‍💼 ADMIN

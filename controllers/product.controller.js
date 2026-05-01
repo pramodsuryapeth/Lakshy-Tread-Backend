@@ -253,31 +253,40 @@ exports.deleteVariant = async (req, res) => {
 // =====================
 exports.getProducts = async (req, res) => {
   try {
-    // 🔥 1. Check Redis
-    const cached = await redisClient.get("products:all");
+    let cached = null;
+
+    // 🔥 Try Redis safely
+    try {
+      cached = await redisClient.get("products:all");
+    } catch (redisErr) {
+      console.error("⚠️ Redis Error:", redisErr.message);
+    }
 
     if (cached) {
       console.log("📦 From Redis Cache");
       return res.json(JSON.parse(cached));
     }
 
-    // 🔥 2. Fetch from DB
+    // 🔥 DB fetch
     const products = await Product.find();
 
     console.log("🗄️ From Database");
-    console.table(products);
 
-    // 🔥 3. Store in Redis (10 min)
-    await redisClient.set(
-      "products:all",
-      JSON.stringify(products),
-      { EX: 60 * 10 }
-    );
+    // 🔥 Store in Redis (safe)
+    try {
+      await redisClient.set(
+        "products:all",
+        JSON.stringify(products),
+        { EX: 60 * 10 }
+      );
+    } catch (redisErr) {
+      console.error("⚠️ Redis Set Error:", redisErr.message);
+    }
 
     res.json(products);
 
   } catch (err) {
-    console.error("❌ Error:", err.message);
+    console.error("❌ MAIN ERROR:", err.message);
     res.status(500).json({ message: err.message });
   }
 };

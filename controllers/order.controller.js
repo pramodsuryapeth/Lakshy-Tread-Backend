@@ -13,39 +13,55 @@ exports.checkout = async (req, res) => {
       email,
       phone,
       address,
+      state,
+      city,
       pincode,
       deliveryType,
-      items // 🔥 frontend कडून येणार (with images + note)
+      items
     } = req.body;
 
     const userId = req.user.userId;
 
-    // ❌ cart empty check (only if cart flow)
-    if (!items || items.length === 0) {
+    // ✅ 1. Parse items (important)
+    let parsedItems = items;
+    if (typeof items === "string") {
+      parsedItems = JSON.parse(items);
+    }
+
+    if (!parsedItems || parsedItems.length === 0) {
       return res.status(400).json({ message: "No items to order ❌" });
     }
 
-    // 💰 Calculate totals
+    // ✅ 2. Cloudinary uploaded images → array
+    const uploadedImagesFromBackend =
+      req.files?.map(file => file.path) || [];
+
+    // 💰 3. Calculate totals
     let productTotal = 0;
 
-    items.forEach(item => {
+    parsedItems.forEach(item => {
       productTotal += item.price * item.quantity;
     });
 
     const deliveryCharge = deliveryType === "delivery" ? 50 : 0;
-    const gst = productTotal * 1;
+    const gst = productTotal * 0.18;
     const finalAmount = productTotal + deliveryCharge + gst;
 
-    // 🕒 Date & Time
-    const now = new Date();
-
-    // 📦 Create Order
+    // 📦 4. Create Order
     const order = new Order({
       userId,
 
-      user: { name, email, phone, address, pincode },
+      user: {
+        name,
+        email,
+        phone,
+        address,
+        state,
+        city,
+        pincode
+      },
 
-      items: items.map(item => ({
+      items: parsedItems.map(item => ({
         productId: item.productId,
         name: item.name,
         size: item.size,
@@ -54,41 +70,56 @@ exports.checkout = async (req, res) => {
         quantity: item.quantity,
         image: item.image,
 
-        // 🔥 NEW FIELDS
+        // 🔥 FIXED DESIGN STRUCTURE
         designImage: item.designImage || null,
-        uploadedImages: item.uploadedImages || [],
+
+        uploadedImages:
+          item.uploadedImages?.length > 0
+            ? item.uploadedImages // frontend
+            : uploadedImagesFromBackend, // backend cloudinary
+
         note: item.note || ""
       })),
 
       deliveryType,
 
-      charges: { productTotal, deliveryCharge, gst, finalAmount },
+      charges: {
+        productTotal,
+        deliveryCharge,
+        gst,
+        finalAmount
+      },
 
       payment: { status: "pending" },
-
       status: "received",
 
-      createdDate: now.toLocaleDateString(),
-      createdTime: now.toLocaleTimeString()
+      createdAt: new Date()
     });
 
     await order.save();
 
-    // 🧹 Clear cart ONLY if cart flow
+    // 🧹 5. Clear cart
     const cart = await Cart.findOne({ userId });
 
     if (cart) {
       cart.items = [];
       await cart.save();
-      await redisClient.del(`cart:${userId}`);
     }
 
-    // 🧠 Cache clear
-    await redisClient.del(`orders:user:${userId}`);
-    await redisClient.del("orders:all");
-    await redisClient.del("revenue");
+    // 🧠 6. Redis safe clear
+    try {
+      await redisClient.del(`cart:${userId}`);
+      await redisClient.del(`orders:user:${userId}`);
+      await redisClient.del("orders:all");
+      await redisClient.del("revenue");
+    } catch (e) {
+      console.log("Redis error:", e.message);
+    }
 
-    res.json({ message: "Order created 💳", order });
+    res.json({
+      message: "Order created 💳",
+      order
+    });
 
   } catch (err) {
     res.status(500).json({ message: err.message });
