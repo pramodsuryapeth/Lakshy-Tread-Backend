@@ -1,15 +1,7 @@
 const User = require("../models/Users");
 const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
-
-// 🔐 transporter (env वापरून)
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
+const transporter = require("../config/mail");
 
 // 📩 Send OTP
 exports.sendEmailOTP = async (req, res) => {
