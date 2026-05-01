@@ -27,6 +27,9 @@ exports.sendEmailOTP = async (req, res) => {
 
     console.log("OTP saved for:", email);
     console.log("OTP:", user.otp);
+    console.log("➡️ Checking SMTP connection...");
+     await transporter.verify();
+  console.log("✅ SMTP is ready");
 
     // 📧 send email
     await transporter.sendMail({
@@ -57,6 +60,7 @@ Lakshy Trendzz Team 🛍️
 
   } catch (error) {
     console.error("OTP ERROR:", error);
+    console.error("❌ SMTP VERIFY ERROR:", err.message);
     res.status(500).json({ message: error.message });
   }
 };
