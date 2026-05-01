@@ -1,12 +1,11 @@
 const Cart = require("../models/Cart");
-const redisClient = require("../config/redis");
 
 // ➕ Add to Cart
 exports.addToCart = async (req, res) => {
   try {
     const {
       productId,
-      variantId,   
+      variantId,
       name,
       size,
       color,
@@ -19,17 +18,10 @@ exports.addToCart = async (req, res) => {
 
     let cart;
 
-    // 🔥 Redis check
-    const cachedCart = await redisClient.get(`cart:${userId}`);
+    // 🔥 Direct DB check (NO Redis)
+    const dbCart = await Cart.findOne({ userId });
+    cart = dbCart ? dbCart.toObject() : { userId, items: [] };
 
-    if (cachedCart) {
-      cart = JSON.parse(cachedCart);
-    } else {
-      const dbCart = await Cart.findOne({ userId });
-      cart = dbCart ? dbCart.toObject() : { userId, items: [] };
-    }
-
-    
     const existingItem = cart.items.find(
       item => item.variantId === variantId
     );
@@ -49,18 +41,10 @@ exports.addToCart = async (req, res) => {
       });
     }
 
-  
     const updatedCart = await Cart.findOneAndUpdate(
       { userId },
       { $set: { items: cart.items } },
       { upsert: true, new: true }
-    );
-
-  
-    await redisClient.set(
-      `cart:${userId}`,
-      JSON.stringify(updatedCart),
-      { EX: 60 * 60 }
     );
 
     res.json(updatedCart);
@@ -77,23 +61,12 @@ exports.getCart = async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    // 🔥 Redis first
-    const cachedCart = await redisClient.get(`cart:${userId}`);
-
-    if (cachedCart) {
-      return res.json(JSON.parse(cachedCart));
-    }
-
+    // 🔥 Direct DB (NO Redis)
     const cart = await Cart.findOne({ userId });
 
     if (!cart) {
       return res.json({ userId, items: [] });
     }
-
-    // 🧠 Cache it
-    await redisClient.set(`cart:${userId}`, JSON.stringify(cart), {
-      EX: 60 * 60
-    });
 
     res.json(cart);
 
@@ -121,21 +94,13 @@ exports.removeFromCart = async (req, res) => {
       item => item.variantId.toString() !== variantId.toString()
     );
 
-    // 🔥 अगर cart empty झाला → delete document
+    // 🔥 cart empty → delete
     if (cart.items.length === 0) {
       await Cart.findOneAndDelete({ userId });
-
-      await redisClient.del(`cart:${userId}`);
-
-      return res.json({ items: [] }); // frontend ला empty cart
+      return res.json({ items: [] });
     }
 
-    // 🔥 else save normally
     await cart.save();
-
-    await redisClient.set(`cart:${userId}`, JSON.stringify(cart), {
-      EX: 60 * 60
-    });
 
     res.json(cart);
 
@@ -148,13 +113,13 @@ exports.removeFromCart = async (req, res) => {
 // 🔄 Update Cart
 exports.updateCart = async (req, res) => {
   try {
-    const { variantId, quantity } = req.body; // 🔥 FIX
+    const { variantId, quantity } = req.body;
     const userId = req.user.userId;
 
     let cart = await Cart.findOne({ userId });
 
     const item = cart.items.find(
-      i => i.variantId === variantId   // 🔥 FIX
+      i => i.variantId === variantId
     );
 
     if (item) {
@@ -162,10 +127,6 @@ exports.updateCart = async (req, res) => {
     }
 
     await cart.save();
-
-    await redisClient.set(`cart:${userId}`, JSON.stringify(cart), {
-      EX: 60 * 60
-    });
 
     res.json(cart);
 

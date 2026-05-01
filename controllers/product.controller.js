@@ -1,5 +1,4 @@
 const Product = require("../models/Product");
-const redisClient = require("../config/redis");
 
 // =====================
 // ➕ ADD PRODUCT
@@ -11,13 +10,10 @@ exports.addProduct = async (req, res) => {
     const product = new Product({
       name,
       description,
-       images: req.imageUrls || []
+      images: req.imageUrls || []
     });
 
     await product.save();
-
-    // 🧠 clear cache
-    await redisClient.del("products:all");
 
     res.json(product);
 
@@ -48,9 +44,6 @@ exports.updateProduct = async (req, res) => {
 
     await product.save();
 
-    // 🧠 clear cache
-    await redisClient.del("products:all");
-
     res.json(product);
 
   } catch (err) {
@@ -73,9 +66,6 @@ exports.deleteProduct = async (req, res) => {
 
     await Product.findByIdAndDelete(productId);
 
-    // 🧠 clear cache
-    await redisClient.del("products:all");
-
     res.json({ message: "Product deleted ✅" });
 
   } catch (err) {
@@ -96,7 +86,6 @@ exports.addVariant = async (req, res) => {
       return res.status(404).json({ message: "Product not found ❌" });
     }
 
-    // 🔥 normalize sizes
     let newSizes = [];
 
     if (sizes) {
@@ -109,44 +98,16 @@ exports.addVariant = async (req, res) => {
       newSizes = size.split(",");
     }
 
-    // 🔥 FIND SAME COLOR VARIANT
-    // let existingVariant = product.variants.find(
-    //   (v) => v.color.toLowerCase() === color.toLowerCase()
-    // );
-
-    // if (existingVariant) {
-    //   // ✅ MERGE SIZES
-
-    //   const merged = [
-    //     ...(existingVariant.sizes || []),
-    //     ...newSizes
-    //   ];
-
-    //   existingVariant.sizes = [...new Set(merged)];
-
-    //   // optional update
-    //   existingVariant.price = price || existingVariant.price;
-    //   existingVariant.stock = stock || existingVariant.stock;
-
-    //   if (req.imageUrls) {
-    //     existingVariant.images = req.imageUrls;
-    //   }
-
-    // } else {
-      // ✅ CREATE NEW VARIANT
-
-      product.variants.push({
-        size: newSizes[0] || "",
-        sizes: newSizes,
-        color,
-        price,
-        stock,
-        images: req.imageUrls || []
-      });
-    // }
+    product.variants.push({
+      size: newSizes[0] || "",
+      sizes: newSizes,
+      color,
+      price,
+      stock,
+      images: req.imageUrls || []
+    });
 
     await product.save();
-    await redisClient.del("products:all");
 
     res.json(product);
 
@@ -174,16 +135,14 @@ exports.updateVariant = async (req, res) => {
       return res.status(404).json({ message: "Variant not found ❌" });
     }
 
-    // 🔥 normalize sizes
     let finalSizes = [];
 
     if (sizes && Array.isArray(sizes)) {
       finalSizes = sizes;
     } else if (size) {
-      finalSizes = [size]; // fallback
+      finalSizes = [size];
     }
 
-    // 🔥 duplicate check (color + sizes combo)
     const exists = product.variants.find(
       (v) =>
         v.color === (color || variant.color) &&
@@ -195,25 +154,20 @@ exports.updateVariant = async (req, res) => {
       return res.status(400).json({ message: "Variant already exists ❌" });
     }
 
-    // 🔥 update fields
     if (finalSizes.length > 0) {
-      variant.sizes = finalSizes;   // new field
-      variant.size = finalSizes[0]; // backward support
+      variant.sizes = finalSizes;
+      variant.size = finalSizes[0];
     }
 
     variant.color = color || variant.color;
     variant.price = price || variant.price;
     variant.stock = stock || variant.stock;
 
-    // 🔥 images update
     if (req.imageUrls) {
       variant.images = req.imageUrls;
     }
 
     await product.save();
-
-    // 🧠 clear cache
-    await redisClient.del("products:all");
 
     res.json(product);
 
@@ -239,8 +193,6 @@ exports.deleteVariant = async (req, res) => {
       return res.status(404).json({ message: "Product not found ❌" });
     }
 
-    await redisClient.del("products:all");
-
     res.json(product);
 
   } catch (err) {
@@ -253,35 +205,7 @@ exports.deleteVariant = async (req, res) => {
 // =====================
 exports.getProducts = async (req, res) => {
   try {
-    let cached = null;
-
-    // 🔥 Try Redis safely
-    try {
-      cached = await redisClient.get("products:all");
-    } catch (redisErr) {
-      console.error("⚠️ Redis Error:", redisErr.message);
-    }
-
-    if (cached) {
-      console.log("📦 From Redis Cache");
-      return res.json(JSON.parse(cached));
-    }
-
-    // 🔥 DB fetch
     const products = await Product.find();
-
-    console.log("🗄️ From Database");
-
-    // 🔥 Store in Redis (safe)
-    try {
-      await redisClient.set(
-        "products:all",
-        JSON.stringify(products),
-        { EX: 60 * 10 }
-      );
-    } catch (redisErr) {
-      console.error("⚠️ Redis Set Error:", redisErr.message);
-    }
 
     res.json(products);
 

@@ -1,13 +1,13 @@
 const jwt = require("jsonwebtoken");
-const redisClient = require("../config/redis");
 const Product = require("../models/Product");
 const Order = require("../models/Order");
 
+// 🔐 Admin Login (NO Redis)
 exports.loginAdmin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // 🔐 check with env
+    // check with env credentials
     if (
       email !== process.env.ADMIN_EMAIL ||
       password !== process.env.ADMIN_PASSWORD
@@ -15,22 +15,17 @@ exports.loginAdmin = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials ❌" });
     }
 
-    // 🔥 generate token
+    // generate JWT token
     const token = jwt.sign(
       { role: "admin" },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    // 🧠 Store token in Redis (optional but useful)
-    await redisClient.set(`admin:${token}`, "valid", {
-      EX: 60 * 60 * 24 * 7 // 7 days
-    });
-
     res.json({
       message: "Admin login successful 🔥",
       role: "admin",
-      token
+      token,
     });
 
   } catch (err) {
@@ -39,7 +34,7 @@ exports.loginAdmin = async (req, res) => {
 };
 
 
-
+// 📊 Dashboard Stats
 exports.getDashboardStats = async (req, res) => {
   try {
     const totalProducts = await Product.countDocuments();

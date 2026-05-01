@@ -1,5 +1,4 @@
 const Review = require("../models/Review");
-const redisClient = require("../config/redis");
 
 // ➕ Add Review
 exports.addReview = async (req, res) => {
@@ -18,9 +17,6 @@ exports.addReview = async (req, res) => {
 
     await review.save();
 
-    // 🧠 clear cache (specific product reviews)
-    await redisClient.del(`reviews:${productId}`);
-
     res.json({ message: "Review added ✅", review });
 
   } catch (err) {
@@ -34,23 +30,9 @@ exports.getReviews = async (req, res) => {
   try {
     const productId = req.params.productId;
 
-    // 🔥 Redis first
-    const cached = await redisClient.get(`reviews:${productId}`);
-
-    if (cached) {
-      return res.json(JSON.parse(cached));
-    }
-
     const reviews = await Review.find({
       productId
     }).populate("userId");
-
-    // 🧠 cache (10 min)
-    await redisClient.set(
-      `reviews:${productId}`,
-      JSON.stringify(reviews),
-      { EX: 60 * 10 }
-    );
 
     res.json(reviews);
 

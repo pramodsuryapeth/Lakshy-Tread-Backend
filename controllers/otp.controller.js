@@ -1,6 +1,5 @@
 const User = require("../models/Users");
 const nodemailer = require("nodemailer");
-const redisClient = require("../config/redis");
 const jwt = require("jsonwebtoken");
 
 // 🔐 transporter (env वापरून)
@@ -29,20 +28,20 @@ exports.sendEmailOTP = async (req, res) => {
         }
       },
       {
-        new: true,      // updated user परत मिळेल
-        upsert: true    // user नसेल तर create होईल
+        new: true,
+        upsert: true
       }
     );
 
     console.log("OTP saved for:", email);
     console.log("OTP:", user.otp);
 
-    // 📧 send email (optional)
+    // 📧 send email
     await transporter.sendMail({
-  from: process.env.EMAIL_USER,
-  to: email,
-  subject: "Lakshy Trendzz | Your OTP Code 🔐",
-  text: `
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Lakshy Trendzz | Your OTP Code 🔐",
+      text: `
 Hello 👋,
 
 Welcome to Lakshy Trendzz!
@@ -60,7 +59,7 @@ If you did not request this, please ignore this email.
 Thanks & Regards,  
 Lakshy Trendzz Team 🛍️
 `
-});
+    });
 
     res.json({ message: "OTP sent to email 📩" });
 
@@ -70,6 +69,7 @@ Lakshy Trendzz Team 🛍️
   }
 };
 
+
 // ✅ Verify OTP
 exports.verifyEmailOTP = async (req, res) => {
   try {
@@ -78,7 +78,6 @@ exports.verifyEmailOTP = async (req, res) => {
 
     const user = await User.findOne({ email });
 
-    // ✅ FIX 1: Proper return
     if (!user) {
       console.log("User not found:", email);
       return res.status(404).json({ message: "User not found ❌" });
@@ -89,13 +88,11 @@ exports.verifyEmailOTP = async (req, res) => {
     console.log("Entered OTP:", enteredOtp);
     console.log("DB OTP:", dbOtp);
 
-    // ✅ FIX 2: OTP check
     if (dbOtp !== enteredOtp) {
       console.log("OTP mismatch for:", email);
       return res.status(400).json({ message: "Invalid OTP ❌" });
     }
 
-    // ✅ FIX 3: Expiry check
     if (!user.otpExpire || new Date(user.otpExpire) < new Date()) {
       console.log("OTP expired for:", email);
       return res.status(400).json({ message: "OTP expired ⏳" });
@@ -107,9 +104,8 @@ exports.verifyEmailOTP = async (req, res) => {
     await user.save();
 
     const token = jwt.sign(
-      { userId: user._id, email: user.email,  role: "user"  },
+      { userId: user._id, email: user.email, role: "user" },
       process.env.JWT_SECRET,
-      
       { expiresIn: "7d" }
     );
 
