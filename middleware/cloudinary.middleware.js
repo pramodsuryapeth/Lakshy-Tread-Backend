@@ -17,7 +17,6 @@ exports.uploadToCloudinary = (folderName) => {
               // 🔥 PERFORMANCE BOOST
               transformation: [
                 { width: 800, height: 800, crop: "limit" },
-                { quality: "best" },
                 { fetch_format: "auto" }
               ]
             },
