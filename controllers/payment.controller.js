@@ -87,8 +87,8 @@ exports.paymentSuccess = async (req, res) => {
   `
 );
 
-   await sendEmail(
-  process.env.ADMIN_EMAIL,
+  await sendEmail(
+  "pramodsuryapeth828@gmail.com", // 👉 admin email
   "🚨 New Order Received | Lakshy Trendzz",
   `
   <div style="font-family: Arial, sans-serif; padding: 20px;">

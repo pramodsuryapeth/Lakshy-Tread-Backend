@@ -28,12 +28,11 @@ exports.sendEmailOTP = async (req, res) => {
     console.log("OTP saved for:", email);
     console.log("OTP:", user.otp);
     console.log("➡️ Checking SMTP connection...");
-     await transporter.verify();
   console.log("✅ SMTP is ready");
 
     // 📧 send email
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    from: '"Lakshy Trendzz" <pramodsuryapeth828@gmail.com>',
       to: email,
       subject: "Lakshy Trendzz | Your OTP Code 🔐",
       text: `
