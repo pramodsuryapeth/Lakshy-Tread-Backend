@@ -7,7 +7,7 @@ const variantSchema = new mongoose.Schema({
   sizes: [String], // ["S", "M", "L"]
 
   price: Number,
-  color: String,
+  color: [String],
 
   // 🔥 multiple images
   images: [String],

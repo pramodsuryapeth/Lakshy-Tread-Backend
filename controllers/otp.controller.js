@@ -8,9 +8,10 @@ exports.sendEmailOTP = async (req, res) => {
   try {
     const email = req.body.email.trim().toLowerCase();
 
+    // 🔥 generate new OTP every time (send + resend)
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // 🔥 DIRECT UPDATE (BEST APPROACH)
+    // ✅ update user
     const user = await User.findOneAndUpdate(
       { email },
       {
@@ -26,41 +27,38 @@ exports.sendEmailOTP = async (req, res) => {
     );
 
     console.log("OTP saved for:", email);
-    console.log("OTP:", user.otp);
-    console.log("➡️ Checking SMTP connection...");
-  console.log("✅ SMTP is ready");
+    console.log("OTP:", otp);
 
-    // 📧 send email
-  await sendEmail(
-  email,
-  "Lakshy Trendzz | Your OTP Code 🔐",
-  `
-  <div style="font-family: Arial, sans-serif;">
-    <h2>Hello 👋</h2>
+    // 📧 send same mail (no change)
+    await sendEmail(
+      email,
+      "Lakshy Trendzz | Your OTP Code 🔐",
+      `
+      <div style="font-family: Arial, sans-serif;">
+        <h2>Hello 👋</h2>
 
-    <p>Welcome to <b>Lakshy Trendzz</b> 🛍️</p>
+        <p>Welcome to <b>Lakshy Trendzz</b> 🛍️</p>
 
-    <p>Your OTP is:</p>
+        <p>Your OTP is:</p>
 
-    <h1 style="color:#000;">${otp}</h1>
+        <h1 style="color:#000;">${otp}</h1>
 
-    <p>This OTP is valid for 5 minutes.</p>
+        <p>This OTP is valid for 5 minutes.</p>
 
-    <p>Do not share this code with anyone.</p>
+        <p>Do not share this code with anyone.</p>
 
-    <br/>
+        <br/>
 
-    <p>Thanks & Regards,<br/>
-    <b>Lakshy Trendzz Team ❤️</b></p>
-  </div>
-  `
-);
+        <p>Thanks & Regards,<br/>
+        <b>Lakshy Trendzz Team ❤️</b></p>
+      </div>
+      `
+    );
 
-    res.json({ message: "OTP sent to email 📩" });
+    res.json({ message: "OTP sent 📩" });
 
   } catch (error) {
-    console.error("OTP ERROR:", error);
-    console.error("❌ SMTP VERIFY ERROR:", err.message);
+    console.error("OTP ERROR:", error.message);
     res.status(500).json({ message: error.message });
   }
 };

@@ -87,6 +87,7 @@ exports.addVariant = async (req, res) => {
     }
 
     let newSizes = [];
+    let newColor = [];
 
     if (sizes) {
       try {
@@ -98,10 +99,22 @@ exports.addVariant = async (req, res) => {
       newSizes = size.split(",");
     }
 
+   if (color) {
+  try {
+    newColor = JSON.parse(color);   // if it's JSON (["red","blue"])
+  } catch (err) {
+    // if not JSON → treat as comma-separated string
+    if (color.includes(",")) {
+      newColor = color.split(",");
+    } else {
+      newColor = [color]; // single value
+    }
+  }
+}
     product.variants.push({
       size: newSizes[0] || "",
       sizes: newSizes,
-      color,
+      color: newColor,
       price,
       stock,
       images: req.imageUrls || []
