@@ -1,7 +1,7 @@
 const User = require("../models/Users");
 const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
-const transporter = require("../config/mail");
+const sendEmail = require("../config/mail");
 
 // 📩 Send OTP
 exports.sendEmailOTP = async (req, res) => {
@@ -31,29 +31,30 @@ exports.sendEmailOTP = async (req, res) => {
   console.log("✅ SMTP is ready");
 
     // 📧 send email
-    await transporter.sendMail({
-    from: '"Lakshy Trendzz" <pramodsuryapeth828@gmail.com>',
-      to: email,
-      subject: "Lakshy Trendzz | Your OTP Code 🔐",
-      text: `
-Hello 👋,
+  await sendEmail(
+  email,
+  "Lakshy Trendzz | Your OTP Code 🔐",
+  `
+  <div style="font-family: Arial, sans-serif;">
+    <h2>Hello 👋</h2>
 
-Welcome to Lakshy Trendzz!
+    <p>Welcome to <b>Lakshy Trendzz</b> 🛍️</p>
 
-Your One-Time Password (OTP) for login is:
+    <p>Your OTP is:</p>
 
-🔐 OTP: ${otp}
+    <h1 style="color:#000;">${otp}</h1>
 
-This OTP is valid for 5 minutes.
+    <p>This OTP is valid for 5 minutes.</p>
 
-Please do not share this code with anyone for security reasons.
+    <p>Do not share this code with anyone.</p>
 
-If you did not request this, please ignore this email.
+    <br/>
 
-Thanks & Regards,  
-Lakshy Trendzz Team 🛍️
-`
-    });
+    <p>Thanks & Regards,<br/>
+    <b>Lakshy Trendzz Team ❤️</b></p>
+  </div>
+  `
+);
 
     res.json({ message: "OTP sent to email 📩" });
 
