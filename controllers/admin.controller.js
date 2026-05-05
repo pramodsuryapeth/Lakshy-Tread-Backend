@@ -41,25 +41,48 @@ exports.getDashboardStats = async (req, res) => {
 
     const totalOrders = await Order.countDocuments();
 
+    // 🟡 received = new orders
     const newOrders = await Order.countDocuments({
-      status: "pending",
+      status: "delivered",
     });
 
+    // 🟢 delivered = completed
     const completedOrders = await Order.countDocuments({
-      status: "completed",
+      status: "delivered",
     });
 
+    // 💰 revenue (received orders)
     const revenueData = await Order.aggregate([
-      { $match: { status: "completed" } },
+      { $match: { status: "delivered" } },
       {
         $group: {
           _id: null,
-          total: { $sum: "$totalPrice" },
+          total: { $sum: "$charges.finalAmount" },
         },
       },
     ]);
 
     const revenue = revenueData[0]?.total || 0;
+
+    // =========================
+    // 🔥 ✅ TODAY RECENT ORDERS
+    // =========================
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const recentOrders = await Order.find({
+      createdAt: {
+        $gte: startOfDay,
+        $lte: endOfDay,
+      },
+    })
+      .sort({ createdAt: -1 }) // latest first
+      .limit(5); // top 5 orders
+
+    // =========================
 
     res.json({
       totalProducts,
@@ -67,9 +90,11 @@ exports.getDashboardStats = async (req, res) => {
       newOrders,
       completedOrders,
       revenue,
+      recentOrders, // 🔥 IMPORTANT
     });
 
   } catch (err) {
+    console.log("Dashboard Error:", err);
     res.status(500).json({ message: err.message });
   }
 };

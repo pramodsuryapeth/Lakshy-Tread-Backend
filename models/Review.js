@@ -11,6 +11,12 @@ const reviewSchema = new mongoose.Schema({
     ref: "Product"
   },
 
+  // 🔥 ADD THIS
+  orderId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Order"
+  },
+
   rating: {
     type: Number,
     required: true,
@@ -18,15 +24,9 @@ const reviewSchema = new mongoose.Schema({
     max: 5
   },
 
-  comment: {
-    type: String
-  },
+  comment: String,
 
-  images: [
-    {
-      type: String // Cloudinary URL
-    }
-  ]
+  images: [String]
 
 }, { timestamps: true });
 

@@ -1,21 +1,39 @@
 const Review = require("../models/Review");
+const Order = require("../models/Order");
 
 // ➕ Add Review
 exports.addReview = async (req, res) => {
   try {
-    const { productId, rating, comment } = req.body;
+    const { productId, rating, comment, orderId } = req.body;
 
-    const imageUrls = req.files.map(file => file.path);
+    // 🔥 Cloudinary URLs
+    const imageUrls = req.imageUrls || [];
+
+    // 🔥 Prevent duplicate review
+    const existing = await Review.findOne({
+      userId: req.user.userId,
+      orderId
+    });
+
+    // if (existing) {
+    //   return res.status(400).json({ message: "Already reviewed ❌" });
+    // }
 
     const review = new Review({
       userId: req.user.userId,
       productId,
+      orderId, // 🔥 important
       rating,
       comment,
       images: imageUrls
     });
 
     await review.save();
+
+    // 🔥 mark order as reviewed
+    await Order.findByIdAndUpdate(orderId, {
+      isReviewed: true
+    });
 
     res.json({ message: "Review added ✅", review });
 
@@ -32,7 +50,7 @@ exports.getReviews = async (req, res) => {
 
     const reviews = await Review.find({
       productId
-    }).populate("userId");
+    }).populate("userId", "email");
 
     res.json(reviews);
 

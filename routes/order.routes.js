@@ -17,8 +17,7 @@ const {
 } = require("../controllers/order.controller");
 
 // 👤 USER
-router.post("/checkout", verifyUser, upload.array("images", 5),
-  uploadToCloudinary("checkout"), checkout);
+router.post("/checkout", verifyUser,checkout);
 router.get("/my", verifyUser, getUserOrders);
 
 // 🧑‍💼 ADMIN
@@ -30,7 +29,27 @@ router.get("/revenue", verifyAdmin, getRevenue);
 // Razorpay 
 router.post("/razorpay-order", verifyUser, createRazorpayOrder);
 
-router.post("/verify-payment", verifyUser, verifyPayment);
+router.post(
+  "/verify-payment",
+  verifyUser,
+  upload.array("files", 5),   // 🔥 FIXED
+  uploadToCloudinary("checkout"),
+  verifyPayment
+);
+
+router.post(
+  "/upload",
+  verifyUser,
+  upload.array("files", 5),
+  uploadToCloudinary("checkout"),
+  (req, res) => {
+       console.log("🔥 CLOUDINARY URLs 👉", req.imageUrls);
+    res.json({
+      
+      urls: req.imageUrls
+    });
+  }
+);
 
 
 module.exports = router;

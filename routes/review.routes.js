@@ -2,7 +2,8 @@ const express = require("express");
 const router = express.Router();
 
 const { verifyUser } = require("../middleware/auth.middleware");
-const upload = require("../middleware/upload.middleware"); // cloudinary
+const upload = require("../middleware/upload.middleware");
+const { uploadToCloudinary } = require("../middleware/cloudinary.middleware");
 
 const {
   addReview,
@@ -13,7 +14,8 @@ const {
 router.post(
   "/add",
   verifyUser,
-  upload.array("images", 5), // max 5 images
+  upload.array("images", 5),
+  uploadToCloudinary("reviews"), // ✅ FIX
   addReview
 );
 

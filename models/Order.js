@@ -1,14 +1,32 @@
 const mongoose = require("mongoose");
 
 const orderSchema = new mongoose.Schema({
+
+  orderId: {
+    type: Number,
+    unique: true
+  },
+
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true
+  },
+
   user: {
     name: String,
     email: String,
     phone: String,
     address: String,
     pincode: String,
-   city: String,
+    city: String,
     state: String,
+  },
+
+  // 🔥 ADD THIS (MAIN FIX)
+  uploadedImages: {
+    type: [String],
+    default: []
   },
 
   items: [
@@ -23,16 +41,13 @@ const orderSchema = new mongoose.Schema({
       color: String,
       price: Number,
       quantity: Number,
+      image: String,
 
-      image: String, // product image
-
-      // 🔥 customize design (optional)
       designImage: [String],
 
-      // 🔥 buy-time uploaded images (optional multiple)
+      // optional (keep or remove later)
       uploadedImages: [String],
 
-      // 🔥 user note (optional)
       note: String
     }
   ],
@@ -63,14 +78,6 @@ const orderSchema = new mongoose.Schema({
     type: String,
     enum: ["received", "confirmed", "ready", "dispatched", "delivered"],
     default: "received"
-  },
-
-  // 🔥 extra timestamps (readable)
-  createdDate: {
-    type: String
-  },
-  createdTime: {
-    type: String
   }
 
 }, { timestamps: true });
