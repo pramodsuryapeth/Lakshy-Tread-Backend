@@ -65,7 +65,7 @@ exports.checkout = async (req, res) => {
       productTotal += (item.price || 0) * (item.quantity || 1);
     });
 
-    const deliveryCharge = deliveryType === "delivery" ? 50 : 0;
+    const deliveryCharge = deliveryType === "delivery" ? 60 : 0;
     const gst = productTotal * 0.18;
     const finalAmount = productTotal + deliveryCharge + gst;
 
@@ -462,6 +462,39 @@ exports.verifyPayment = async (req, res) => {
     });
 
     await order.save();
+
+    for (const item of parsedOrderData.items) {
+
+  // 🔍 PRODUCT FIND
+  const product = await Product.findById(item.productId);
+
+  if (!product) {
+    return res.status(404).json({
+      message: "Product not found ❌"
+    });
+  }
+
+  // 🔍 VARIANT FIND
+  const variant = product.variants.id(item.variantId);
+
+  if (!variant) {
+    return res.status(404).json({
+      message: "Variant not found ❌"
+    });
+  }
+
+  // ❌ STOCK CHECK
+  if (variant.stock < item.quantity) {
+    return res.status(400).json({
+      message: `${product.name} is out of stock ❌`
+    });
+  }
+
+  // ➖ REDUCE STOCK
+  variant.stock -= item.quantity;
+
+  await product.save();
+}
 
     // 🧹 CLEAR CART
     if (parsedOrderData?.clearCart && req.user?.userId) {
