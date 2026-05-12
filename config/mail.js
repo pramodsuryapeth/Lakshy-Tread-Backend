@@ -6,7 +6,7 @@ const sendEmail = async (to, subject, html) => {
       "https://api.sendinblue.com/v3/smtp/email",
       {
         sender: {
-          name: "Lakshy Trendzz 🛍️",
+          name: "Kalakar Prints Studio 🛍️",
           email: process.env.EMAIL_USER,
         },
         to: [{ email: to }],

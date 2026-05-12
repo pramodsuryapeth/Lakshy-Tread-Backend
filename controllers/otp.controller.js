@@ -32,12 +32,12 @@ exports.sendEmailOTP = async (req, res) => {
     // 📧 send same mail (no change)
     await sendEmail(
       email,
-      "Lakshy Trendzz | Your OTP Code 🔐",
+      "Kalakar Prints Studio | Your OTP Code 🔐",
       `
       <div style="font-family: Arial, sans-serif;">
         <h2>Hello 👋</h2>
 
-        <p>Welcome to <b>Lakshy Trendzz</b> 🛍️</p>
+        <p>Welcome to <b>Kalakar Prints Studio</b> 🛍️</p>
 
         <p>Your OTP is:</p>
 
@@ -50,7 +50,7 @@ exports.sendEmailOTP = async (req, res) => {
         <br/>
 
         <p>Thanks & Regards,<br/>
-        <b>Lakshy Trendzz Team ❤️</b></p>
+        <b>Kalakar Prints Studio Team ❤️</b></p>
       </div>
       `
     );
