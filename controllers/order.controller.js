@@ -1,5 +1,7 @@
 const Cart = require("../models/Cart");
 const Order = require("../models/Order");
+const Product = require("../models/Product");
+const sendEmail = require("../config/mail");
 const razorpay = require("../config/razorpay");
 const crypto = require("crypto");
 
@@ -505,10 +507,227 @@ exports.verifyPayment = async (req, res) => {
       }
     }
 
+  
+await sendEmail(
+  parsedOrderData?.user?.email,
+
+  `Order Confirmed #${newOrderId}`,
+
+  `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmation</title>
+    <style>
+      /* Reset & base */
+      body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+      body { margin:0; padding:0; width:100%; }
+      img { border:0; height:auto; line-height:100%; outline:none; text-decoration:none; }
+      table { border-collapse:collapse; }
+
+      /* Mobile responsive */
+      @media only screen and (max-width: 600px) {
+        .email-container { width:100% !important; border-radius:0 !important; }
+        .email-header { padding:20px !important; }
+        .email-header h1 { font-size:22px !important; }
+        .email-body { padding:20px !important; }
+        .product-table td { display:block !important; width:100% !important; }
+        .product-img { width:100% !important; height:auto !important; max-width:200px !important; margin:0 auto 15px !important; display:block !important; }
+        .product-info { text-align:center !important; }
+        .order-details-col { display:block !important; width:100% !important; margin-bottom:15px; }
+        .image-gallery img { width:70px !important; height:70px !important; }
+      }
+    </style>
+  </head>
+  <body style="margin:0; padding:0; background:#f4f4f4; font-family:Arial, Helvetica, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;">
+      <tr>
+        <td align="center" style="padding:30px 10px;">
+          <!-- Main Container -->
+          <table role="presentation" width="100%" style="max-width:700px; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 5px 20px rgba(0,0,0,0.08);" class="email-container">
+            
+            <!-- HEADER -->
+            <tr>
+              <td style="background:#111827; padding:30px; text-align:center;" class="email-header">
+                <h1 style="margin:0; font-size:28px; color:#ffffff; font-weight:bold;">Kalakar Prints Studio 🛍️</h1>
+                <p style="margin-top:10px; color:#d1d5db; font-size:14px;">Order Confirmation</p>
+              </td>
+            </tr>
+
+            <!-- BODY -->
+            <tr>
+              <td style="padding:30px;" class="email-body">
+                <h2 style="color:#16a34a; margin-top:0;">Order Successfully Placed ✅</h2>
+                <p style="font-size:16px; color:#374151;">
+                  Hello <strong>${parsedOrderData?.user?.name}</strong>,
+                </p>
+                <p style="color:#4b5563; line-height:1.7;">
+                  Thank you for shopping with us ❤️ Your payment was received successfully and your order is now confirmed.
+                </p>
+
+                <!-- ORDER INFO -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb; border-radius:12px; margin-top:25px;">
+                  <tr>
+                    <td style="padding:20px;">
+                      <h3 style="margin-top:0; color:#111827;">Order Details</h3>
+                      <table width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td style="padding:8px 0; color:#6b7280;">Order ID</td>
+                          <td style="padding:8px 0; font-weight:bold; color:#111827;">#${newOrderId}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:8px 0; color:#6b7280;">Payment ID</td>
+                          <td style="padding:8px 0; color:#111827;">${razorpay_payment_id}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:8px 0; color:#6b7280;">Total Amount</td>
+                          <td style="padding:8px 0; font-weight:bold; color:#16a34a;">₹${parsedOrderData?.charges?.finalAmount}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:8px 0; color:#6b7280;">Delivery Type</td>
+                          <td style="padding:8px 0; color:#111827;">${parsedOrderData?.deliveryType}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:8px 0; color:#6b7280;">Status</td>
+                          <td style="padding:8px 0; color:#2563eb; font-weight:bold;">RECEIVED</td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- SHIPPING -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb; border-radius:12px; margin-top:25px;">
+                  <tr>
+                    <td style="padding:20px;">
+                      <h3 style="margin-top:0; color:#111827;">Shipping Address</h3>
+                      <p style="margin:0; line-height:1.8; color:#374151;">
+                        ${parsedOrderData?.user?.name}<br/>
+                        ${parsedOrderData?.user?.addressLine}<br/>
+                        ${parsedOrderData?.user?.city}, ${parsedOrderData?.user?.state} - ${parsedOrderData?.user?.pincode}<br/>
+                        Phone: ${parsedOrderData?.user?.phone}
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- ITEMS -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:30px;">
+                  <tr>
+                    <td>
+                      <h2 style="color:#111827; margin-bottom:20px;">Ordered Items</h2>
+                      ${parsedOrderData.items.map((item) => `
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb; border-radius:14px; margin-bottom:25px;">
+                          <tr>
+                            <td style="padding:20px;">
+                              <!-- PRODUCT -->
+                              <table width="100%" cellpadding="0" cellspacing="0" class="product-table">
+                                <tr>
+                                  <td style="vertical-align:top; padding-right:18px;" class="product-img-cell">
+                                    <img
+                                      src="${item.image}"
+                                      alt="${item.name}"
+                                      style="width:110px; height:110px; object-fit:cover; border-radius:12px; border:1px solid #e5e7eb;"
+                                      class="product-img"
+                                    />
+                                  </td>
+                                  <td style="vertical-align:top; flex:1;" class="product-info">
+                                    <h3 style="margin-top:0; margin-bottom:10px; color:#111827;">${item.name}</h3>
+                                    <p style="margin:6px 0; color:#4b5563;"><strong>Price:</strong> ₹${item.price}</p>
+                                    <p style="margin:6px 0; color:#4b5563;"><strong>Quantity:</strong> ${item.quantity}</p>
+                                    ${item.size ? `<p style="margin:6px 0; color:#4b5563;"><strong>Size:</strong> ${item.size}</p>` : ""}
+                                    ${item.color ? `<p style="margin:6px 0; color:#4b5563;"><strong>Color:</strong> ${item.color}</p>` : ""}
+                                  </td>
+                                </tr>
+                              </table>
+
+                              ${item.note ? `
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:18px; background:#f9fafb; border-radius:10px;">
+                                  <tr>
+                                    <td style="padding:14px;">
+                                      <p style="margin:0 0 8px 0; font-weight:bold; color:#111827;">Customer Note</p>
+                                      <p style="margin:0; color:#4b5563; line-height:1.7;">${item.note}</p>
+                                    </td>
+                                  </tr>
+                                </table>
+                              ` : ""}
+
+                              ${item.uploadedImages?.length ? `
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
+                                  <tr>
+                                    <td>
+                                      <h4 style="margin-bottom:12px; color:#111827;">Uploaded Images</h4>
+                                      <div style="display:flex; flex-wrap:wrap; gap:10px;" class="image-gallery">
+                                        ${item.uploadedImages.map(img => `
+                                          <img src="${img}" alt="uploaded" style="width:90px; height:90px; object-fit:cover; border-radius:10px; border:1px solid #d1d5db;"/>
+                                        `).join("")}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                </table>
+                              ` : ""}
+
+                              ${item.designImage?.length ? `
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
+                                  <tr>
+                                    <td>
+                                      <h4 style="margin-bottom:12px; color:#111827;">Design Images</h4>
+                                      <div style="display:flex; flex-wrap:wrap; gap:10px;" class="image-gallery">
+                                        ${item.designImage.map(img => `
+                                          <img src="${img}" alt="design" style="width:90px; height:90px; object-fit:cover; border-radius:10px; border:1px solid #d1d5db;"/>
+                                        `).join("")}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                </table>
+                              ` : ""}
+                            </td>
+                          </tr>
+                        </table>
+                      `).join("")}
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- FOOTER with Contact -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:30px; padding-top:20px; border-top:1px solid #e5e7eb;">
+                  <tr>
+                    <td style="padding:20px 0 0 0;">
+                      <p style="color:#6b7280; line-height:1.7; font-size:14px; margin:0;">
+                        For any help regarding your order, feel free to reach us on WhatsApp:
+                      </p>
+                      <p style="margin-top:10px; font-size:18px; font-weight:bold; color:#111827;">
+                        <a href="https://wa.me/8380854418" target="_blank" style="color:#25D366; text-decoration:none; background:#e8f5e9; padding:6px 14px; border-radius:8px; display:inline-block;">
+                          💬 +91 8380854418
+                        </a>
+                      </p>
+                      <p style="margin-top:20px; color:#111827; font-weight:bold;">
+                        Regards,<br/>
+                        Kalakar Prints Studio 🛍️
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+  </html>
+  `
+);
+
+
     res.json({
       message: "Payment success ✅",
       order
     });
+
+    
 
   } catch (err) {
     console.error("🔥 VERIFY ERROR:", err);
