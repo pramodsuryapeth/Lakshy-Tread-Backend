@@ -148,8 +148,6 @@ exports.updateVariant = async (req, res) => {
     const { productId, variantId, sizes, price, stock, colors } = req.body;
 
     console.log("UPDATE VARIANT REQ BODY:", req.body);
-    console.log("RAW COLORS:", colors);
-    console.log("RAW SIZES:", sizes);
 
     const product = await Product.findById(productId);
 
@@ -195,7 +193,7 @@ exports.updateVariant = async (req, res) => {
     // Check duplicate variant
     const exists = product.variants.find(
       (v) =>
-        JSON.stringify(v.colors || []) === JSON.stringify(finalColors) &&
+        JSON.stringify(v.color || []) === JSON.stringify(finalColors) &&
         JSON.stringify(v.sizes || []) === JSON.stringify(finalSizes) &&
         v._id.toString() !== variantId
     );
@@ -215,10 +213,11 @@ exports.updateVariant = async (req, res) => {
 
     // Update colors
     if (finalColors.length > 0) {
-      variant.colors = finalColors;
-      variant.markModified("colors");
+      variant.color = finalColors;
+      variant.markModified("color");
     }
 
+    // Update other fields
     variant.price = price || variant.price;
     variant.stock = stock || variant.stock;
 
