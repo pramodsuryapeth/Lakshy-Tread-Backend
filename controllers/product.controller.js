@@ -80,6 +80,8 @@ exports.addVariant = async (req, res) => {
   try {
     const { productId, sizes, size, price, stock, colors } = req.body;
 
+    console.log("ADD VARIANT REQ BODY:", req.body);
+
     const product = await Product.findById(productId);
 
     if (!product) {
@@ -89,28 +91,33 @@ exports.addVariant = async (req, res) => {
     let newSizes = [];
     let newColor = [];
 
+    // Parse sizes
     if (sizes) {
       try {
         newSizes = JSON.parse(sizes);
       } catch {
-        newSizes = [];
+        newSizes = sizes.split(",").map((s) => s.trim());
       }
     } else if (size) {
-      newSizes = size.split(",");
+      newSizes = size.split(",").map((s) => s.trim());
     }
 
-   if (colors) {
-  try {
-    newColor = JSON.parse(colors);   // if it's JSON (["red","blue"])
-  } catch (err) {
-    // if not JSON → treat as comma-separated string
-    if (colors.includes(",")) {
-      newColor = colors.split(",");
-    } else {
-      newColor = [colors]; // single value
+    // Parse colors
+    if (colors) {
+      try {
+        newColor = JSON.parse(colors);
+      } catch {
+        if (colors.includes(",")) {
+          newColor = colors.split(",").map((c) => c.trim());
+        } else {
+          newColor = [colors.trim()];
+        }
+      }
     }
-  }
-}
+
+    console.log("PARSED SIZES:", newSizes);
+    console.log("PARSED COLORS:", newColor);
+
     product.variants.push({
       size: newSizes[0] || "",
       sizes: newSizes,
@@ -122,9 +129,12 @@ exports.addVariant = async (req, res) => {
 
     await product.save();
 
+    console.log("SAVED PRODUCT:", product);
+
     res.json(product);
 
   } catch (err) {
+    console.log("ADD VARIANT ERROR:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -132,9 +142,14 @@ exports.addVariant = async (req, res) => {
 // =====================
 // ✏ UPDATE VARIANT
 // =====================
+
 exports.updateVariant = async (req, res) => {
   try {
     const { productId, variantId, sizes, price, stock, colors } = req.body;
+
+    console.log("UPDATE VARIANT REQ BODY:", req.body);
+    console.log("RAW COLORS:", colors);
+    console.log("RAW SIZES:", sizes);
 
     const product = await Product.findById(productId);
 
@@ -155,7 +170,7 @@ exports.updateVariant = async (req, res) => {
       try {
         finalSizes = JSON.parse(sizes);
       } catch {
-        finalSizes = [sizes];
+        finalSizes = sizes.split(",").map((s) => s.trim());
       }
     }
 
@@ -166,9 +181,16 @@ exports.updateVariant = async (req, res) => {
       try {
         finalColors = JSON.parse(colors);
       } catch {
-        finalColors = [colors];
+        if (colors.includes(",")) {
+          finalColors = colors.split(",").map((c) => c.trim());
+        } else {
+          finalColors = [colors.trim()];
+        }
       }
     }
+
+    console.log("FINAL SIZES:", finalSizes);
+    console.log("FINAL COLORS:", finalColors);
 
     // Check duplicate variant
     const exists = product.variants.find(
@@ -182,15 +204,19 @@ exports.updateVariant = async (req, res) => {
       return res.status(400).json({ message: "Variant already exists ❌" });
     }
 
+    console.log("BEFORE UPDATE:", variant);
+
     // Update sizes
     if (finalSizes.length > 0) {
       variant.sizes = finalSizes;
       variant.size = finalSizes[0];
+      variant.markModified("sizes");
     }
 
     // Update colors
     if (finalColors.length > 0) {
       variant.colors = finalColors;
+      variant.markModified("colors");
     }
 
     variant.price = price || variant.price;
@@ -199,13 +225,19 @@ exports.updateVariant = async (req, res) => {
     // Update images
     if (req.imageUrls) {
       variant.images = req.imageUrls;
+      variant.markModified("images");
     }
 
+    console.log("AFTER UPDATE:", variant);
+
     await product.save();
+
+    console.log("SAVED VARIANT:", product.variants.id(variantId));
 
     res.json(product);
 
   } catch (err) {
+    console.log("UPDATE VARIANT ERROR:", err);
     res.status(500).json({ message: err.message });
   }
 };
