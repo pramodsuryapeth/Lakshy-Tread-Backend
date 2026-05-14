@@ -68,7 +68,9 @@ exports.checkout = async (req, res) => {
     });
 
     const deliveryCharge = deliveryType === "delivery" ? 60 : 0;
-    const gst = productTotal * 0.18;
+ const gst = Number(
+  ((productTotal + deliveryCharge) * 0.02).toFixed(2)
+);
     const finalAmount = productTotal + deliveryCharge + gst;
 
     const order = new Order({
@@ -699,8 +701,8 @@ await sendEmail(
                         For any help regarding your order, feel free to reach us on WhatsApp:
                       </p>
                       <p style="margin-top:10px; font-size:18px; font-weight:bold; color:#111827;">
-                        <a href="https://wa.me/8380854418" target="_blank" style="color:#25D366; text-decoration:none; background:#e8f5e9; padding:6px 14px; border-radius:8px; display:inline-block;">
-                          💬 +91 8380854418
+                        <a href="https://wa.me/7030550562" target="_blank" style="color:#25D366; text-decoration:none; background:#e8f5e9; padding:6px 14px; border-radius:8px; display:inline-block;">
+                          💬 +91 7030550562
                         </a>
                       </p>
                       <p style="margin-top:20px; color:#111827; font-weight:bold;">
