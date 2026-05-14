@@ -78,7 +78,7 @@ exports.deleteProduct = async (req, res) => {
 // =====================
 exports.addVariant = async (req, res) => {
   try {
-    const { productId, sizes, size, price, stock, color } = req.body;
+    const { productId, sizes, size, price, stock, colors } = req.body;
 
     const product = await Product.findById(productId);
 
@@ -99,22 +99,22 @@ exports.addVariant = async (req, res) => {
       newSizes = size.split(",");
     }
 
-   if (color) {
+   if (colors) {
   try {
-    newColor = JSON.parse(color);   // if it's JSON (["red","blue"])
+    newColor = JSON.parse(colors);   // if it's JSON (["red","blue"])
   } catch (err) {
     // if not JSON → treat as comma-separated string
-    if (color.includes(",")) {
-      newColor = color.split(",");
+    if (colors.includes(",")) {
+      newColor = colors.split(",");
     } else {
-      newColor = [color]; // single value
+      newColor = [colors]; // single value
     }
   }
 }
     product.variants.push({
       size: newSizes[0] || "",
       sizes: newSizes,
-      color: newColor,
+      colors: newColor,
       price,
       stock,
       images: req.imageUrls || []
@@ -134,7 +134,7 @@ exports.addVariant = async (req, res) => {
 // =====================
 exports.updateVariant = async (req, res) => {
   try {
-    const { productId, variantId, size, sizes, price, stock, color } = req.body;
+    const { productId, variantId, sizes, price, stock, colors } = req.body;
 
     const product = await Product.findById(productId);
 
@@ -148,17 +148,32 @@ exports.updateVariant = async (req, res) => {
       return res.status(404).json({ message: "Variant not found ❌" });
     }
 
+    // Parse sizes
     let finalSizes = [];
 
-    if (sizes && Array.isArray(sizes)) {
-      finalSizes = sizes;
-    } else if (size) {
-      finalSizes = [size];
+    if (sizes) {
+      try {
+        finalSizes = JSON.parse(sizes);
+      } catch {
+        finalSizes = [sizes];
+      }
     }
 
+    // Parse colors
+    let finalColors = [];
+
+    if (colors) {
+      try {
+        finalColors = JSON.parse(colors);
+      } catch {
+        finalColors = [colors];
+      }
+    }
+
+    // Check duplicate variant
     const exists = product.variants.find(
       (v) =>
-        v.color === (color || variant.color) &&
+        JSON.stringify(v.colors || []) === JSON.stringify(finalColors) &&
         JSON.stringify(v.sizes || []) === JSON.stringify(finalSizes) &&
         v._id.toString() !== variantId
     );
@@ -167,15 +182,21 @@ exports.updateVariant = async (req, res) => {
       return res.status(400).json({ message: "Variant already exists ❌" });
     }
 
+    // Update sizes
     if (finalSizes.length > 0) {
       variant.sizes = finalSizes;
       variant.size = finalSizes[0];
     }
 
-    variant.color = color || variant.color;
+    // Update colors
+    if (finalColors.length > 0) {
+      variant.colors = finalColors;
+    }
+
     variant.price = price || variant.price;
     variant.stock = stock || variant.stock;
 
+    // Update images
     if (req.imageUrls) {
       variant.images = req.imageUrls;
     }
