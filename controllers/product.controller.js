@@ -85,57 +85,89 @@ exports.addVariant = async (req, res) => {
     const product = await Product.findById(productId);
 
     if (!product) {
-      return res.status(404).json({ message: "Product not found ❌" });
+      return res.status(404).json({
+        success: false,
+        message: "Product not found ❌"
+      });
     }
 
     let newSizes = [];
-    let newColor = [];
+    let newColors = [];
 
-    // Parse sizes
+    // ---------- Parse Sizes ----------
     if (sizes) {
       try {
         newSizes = JSON.parse(sizes);
+
+        // if string comes after parse
+        if (!Array.isArray(newSizes)) {
+          newSizes = [newSizes];
+        }
+
       } catch {
-        newSizes = sizes.split(",").map((s) => s.trim());
+        newSizes = sizes
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
       }
     } else if (size) {
-      newSizes = size.split(",").map((s) => s.trim());
+      newSizes = size
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
     }
 
-    // Parse colors
+    // ---------- Parse Colors ----------
     if (colors) {
       try {
-        newColor = JSON.parse(colors);
-      } catch {
-        if (colors.includes(",")) {
-          newColor = colors.split(",").map((c) => c.trim());
-        } else {
-          newColor = [colors.trim()];
+        newColors = JSON.parse(colors);
+
+        // if single string comes
+        if (!Array.isArray(newColors)) {
+          newColors = [newColors];
         }
+
+      } catch {
+        newColors = colors
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean);
       }
     }
 
     console.log("PARSED SIZES:", newSizes);
-    console.log("PARSED COLORS:", newColor);
+    console.log("PARSED COLORS:", newColors);
 
-    product.variants.push({
+    const newVariant = {
       size: newSizes[0] || "",
       sizes: newSizes,
-      colors: newColor,
-      price,
-      stock,
+      color: newColors,
+      price: Number(price),
+      stock: Number(stock),
       images: req.imageUrls || []
-    });
+    };
+
+    console.log("FINAL VARIANT:", newVariant);
+
+    product.variants.push(newVariant);
 
     await product.save();
 
     console.log("SAVED PRODUCT:", product);
 
-    res.json(product);
+    return res.status(201).json({
+      success: true,
+      message: "Variant added successfully ✅",
+      product
+    });
 
   } catch (err) {
     console.log("ADD VARIANT ERROR:", err);
-    res.status(500).json({ message: err.message });
+
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 
